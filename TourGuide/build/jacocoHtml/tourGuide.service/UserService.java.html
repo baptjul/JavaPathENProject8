@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">TourGuide</a> &gt; <a href="index.source.html" class="el_package">tourGuide.service</a> &gt; <span class="el_source">UserService.java</span></div><h1>UserService.java</h1><pre class="source lang-java linenums">package tourGuide.service;
+
+import gpsUtil.GpsUtil;
+import gpsUtil.location.Location;
+import gpsUtil.location.VisitedLocation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import tourGuide.DTO.LocationDTO;
+import tourGuide.helper.InternalTestHelper;
+import tourGuide.repository.UserRepository;
+import tourGuide.tracker.Tracker;
+import tourGuide.user.User;
+
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.*;
+import java.util.stream.IntStream;
+
+@Service
+public class UserService {
+<span class="fc" id="L23">    private final Logger logger = LoggerFactory.getLogger(UserService.class);</span>
+    //private final GpsUtil gpsUtil;
+    private final RewardsService rewardsService;
+    public final Tracker tracker;
+<span class="fc" id="L27">    boolean testMode = true;</span>
+    @Autowired
+    public UserRepository userRepository;
+    @Autowired
+    private TourGuideService tourGuideService;
+    @Autowired
+    private GpsUtilService gpsUtilService;
+
+<span class="fc" id="L35">    public UserService(GpsUtilService gpsUtilService, RewardsService rewardsService) {</span>
+<span class="fc" id="L36">        this.gpsUtilService = gpsUtilService;</span>
+<span class="fc" id="L37">        this.rewardsService = rewardsService;</span>
+
+<span class="pc bpc" id="L39" title="1 of 2 branches missed.">        if (testMode) {</span>
+<span class="fc" id="L40">            logger.info(&quot;TestMode enabled&quot;);</span>
+<span class="fc" id="L41">            logger.debug(&quot;Initializing users&quot;);</span>
+<span class="nc" id="L42">            initializeInternalUsers();</span>
+<span class="nc" id="L43">            logger.debug(&quot;Finished initializing users&quot;);</span>
+        }
+<span class="nc" id="L45">        tracker = new Tracker(tourGuideService, this);</span>
+<span class="nc" id="L46">        addShutDownHook();</span>
+<span class="nc" id="L47">    }</span>
+
+    public VisitedLocation getUserLocation(User user) {
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        return (user.getVisitedLocations().size() &gt; 0) ?</span>
+<span class="nc" id="L51">                user.getLastVisitedLocation() :</span>
+<span class="nc" id="L52">                trackUserLocation(user);</span>
+    }
+
+    public User getUser(String userName) {
+<span class="nc" id="L56">        return userRepository.getInternalUserMap().get(userName);</span>
+    }
+
+    public List&lt;User&gt; getAllUsers() {
+<span class="nc" id="L60">        return new ArrayList&lt;&gt;(userRepository.getInternalUserMap().values());</span>
+    }
+
+    public void addUser(User user) {
+<span class="nc" id="L64">        System.out.println(&quot;user = &quot; + user);</span>
+<span class="nc" id="L65">        System.out.println(&quot;repo = &quot; + userRepository.getInternalUserMap());</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        if (!userRepository.getInternalUserMap().containsKey(user.getUserName())) {</span>
+<span class="nc" id="L67">            userRepository.addUserToInternalUserMap(user.getUserName(), user); //internalUserMap.put(user.getUserName(), user);</span>
+        }
+<span class="nc" id="L69">    }</span>
+
+    public VisitedLocation trackUserLocation(User user) {
+<span class="nc" id="L72">        VisitedLocation visitedLocation = gpsUtilService.getUserLocation(user);</span>
+<span class="nc" id="L73">        user.addToVisitedLocations(visitedLocation);</span>
+<span class="nc" id="L74">        rewardsService.calculateRewards(user);</span>
+<span class="nc" id="L75">        return visitedLocation;</span>
+    }
+
+    public Map&lt;String, LocationDTO&gt; allCurrentLocations() {
+<span class="nc" id="L79">        Map&lt;String, LocationDTO&gt; usersLocation = new TreeMap&lt;&gt;();</span>
+<span class="nc" id="L80">        List&lt;User&gt; users = getAllUsers();</span>
+<span class="nc" id="L81">        users.parallelStream().forEach(user -&gt; {</span>
+<span class="nc" id="L82">            VisitedLocation lastVisitedLocation = user.getVisitedLocations().get(user.getVisitedLocations().size()-1);</span>
+<span class="nc" id="L83">            Location lastLocation = lastVisitedLocation.location;</span>
+<span class="nc" id="L84">            usersLocation.put(user.getUserId().toString(), new LocationDTO(lastLocation.longitude, lastLocation.latitude));</span>
+<span class="nc" id="L85">        });</span>
+
+<span class="nc" id="L87">        return usersLocation;</span>
+    }
+    private void addShutDownHook() {
+<span class="nc" id="L90">        Runtime.getRuntime().addShutdownHook(new Thread() {</span>
+            public void run() {
+<span class="nc" id="L92">                tracker.stopTracking();</span>
+<span class="nc" id="L93">            }</span>
+        });
+<span class="nc" id="L95">    }</span>
+
+    /**********************************************************************************
+     * Methods Below: For Internal Testing
+     **********************************************************************************/
+
+    public void initializeInternalUsers() {
+<span class="nc" id="L102">        IntStream.range(0, InternalTestHelper.getInternalUserNumber()).forEach(i -&gt; {</span>
+<span class="fc" id="L103">            String userName = &quot;internalUser&quot; + i;</span>
+<span class="fc" id="L104">            String phone = &quot;000&quot;;</span>
+<span class="fc" id="L105">            String email = userName + &quot;@tourGuide.com&quot;;</span>
+<span class="fc" id="L106">            User user = new User(UUID.randomUUID(), userName, phone, email);</span>
+<span class="fc" id="L107">            generateUserLocationHistory(user);</span>
+
+<span class="nc" id="L109">            userRepository.addUserToInternalUserMap(userName, user);//.put(userName, user);</span>
+<span class="nc" id="L110">        });</span>
+<span class="nc" id="L111">        logger.debug(&quot;Created &quot; + InternalTestHelper.getInternalUserNumber() + &quot; internal test users.&quot;);</span>
+<span class="nc" id="L112">    }</span>
+
+    private void generateUserLocationHistory(User user) {
+<span class="fc" id="L115">        IntStream.range(0, 3).forEach(i -&gt; {</span>
+<span class="fc" id="L116">            user.addToVisitedLocations(new VisitedLocation(user.getUserId(), new Location(generateRandomLatitude(), generateRandomLongitude()), getRandomTime()));</span>
+<span class="fc" id="L117">        });</span>
+<span class="fc" id="L118">    }</span>
+
+    private double generateRandomLongitude() {
+<span class="fc" id="L121">        double leftLimit = -180;</span>
+<span class="fc" id="L122">        double rightLimit = 180;</span>
+<span class="fc" id="L123">        return leftLimit + new Random().nextDouble() * (rightLimit - leftLimit);</span>
+    }
+
+    private double generateRandomLatitude() {
+<span class="fc" id="L127">        double leftLimit = -85.05112878;</span>
+<span class="fc" id="L128">        double rightLimit = 85.05112878;</span>
+<span class="fc" id="L129">        return leftLimit + new Random().nextDouble() * (rightLimit - leftLimit);</span>
+    }
+
+    private Date getRandomTime() {
+<span class="fc" id="L133">        LocalDateTime localDateTime = LocalDateTime.now().minusDays(new Random().nextInt(30));</span>
+<span class="fc" id="L134">        return Date.from(localDateTime.toInstant(ZoneOffset.UTC));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

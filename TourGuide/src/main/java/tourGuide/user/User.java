@@ -60,7 +60,7 @@ public class User {
 	public void addToVisitedLocations(VisitedLocation visitedLocation) {
 		visitedLocations.add(visitedLocation);
 	}
-	
+
 	public List<VisitedLocation> getVisitedLocations() {
 		return visitedLocations;
 	}
@@ -74,9 +74,13 @@ public class User {
 			userRewards.add(userReward);
 		}
 	}
-	
+
 	public List<UserReward> getUserRewards() {
 		return userRewards;
+	}
+
+	public void setUserRewards(List<UserReward> userRewards) {
+		this.userRewards = userRewards;
 	}
 	
 	public UserPreferences getUserPreferences() {
@@ -99,4 +103,7 @@ public class User {
 		return tripDeals;
 	}
 
+	public void setVisitedLocations(List<VisitedLocation> visitedLocations) {
+		this.visitedLocations = visitedLocations;
+	}
 }
