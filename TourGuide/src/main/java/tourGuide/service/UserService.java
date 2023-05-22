@@ -1,20 +1,17 @@
 package tourGuide.service;
 
-import gpsUtil.GpsUtil;
 import gpsUtil.location.Location;
 import gpsUtil.location.VisitedLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import tourGuide.DTO.LocationDTO;
 import tourGuide.helper.InternalTestHelper;
 import tourGuide.repository.UserRepository;
-import tourGuide.tracker.Tracker;
 import tourGuide.user.User;
+import tourGuide.user.UserPreferences;
+import tourGuide.user.UserReward;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.IntStream;
 
@@ -22,34 +19,12 @@ import java.util.stream.IntStream;
 public class UserService {
     private final Logger logger = LoggerFactory.getLogger(UserService.class);
     //private final GpsUtil gpsUtil;
-    private final RewardsService rewardsService;
-    public final Tracker tracker;
-    boolean testMode = true;
-    @Autowired
-    public UserRepository userRepository;
-    @Autowired
-    private TourGuideService tourGuideService;
-    @Autowired
+    private final UserRepository userRepository;
     private GpsUtilService gpsUtilService;
 
-    public UserService(GpsUtilService gpsUtilService, RewardsService rewardsService) {
+    public UserService(GpsUtilService gpsUtilService, UserRepository userRepository) {
         this.gpsUtilService = gpsUtilService;
-        this.rewardsService = rewardsService;
-
-        if (testMode) {
-            logger.info("TestMode enabled");
-            logger.debug("Initializing users");
-            initializeInternalUsers();
-            logger.debug("Finished initializing users");
-        }
-        tracker = new Tracker(tourGuideService, this);
-        addShutDownHook();
-    }
-
-    public VisitedLocation getUserLocation(User user) {
-        return (user.getVisitedLocations().size() > 0) ?
-                user.getLastVisitedLocation() :
-                trackUserLocation(user);
+        this.userRepository = userRepository;
     }
 
     public User getUser(String userName) {
@@ -61,18 +36,31 @@ public class UserService {
     }
 
     public void addUser(User user) {
-        System.out.println("user = " + user);
-        System.out.println("repo = " + userRepository.getInternalUserMap());
         if (!userRepository.getInternalUserMap().containsKey(user.getUserName())) {
-            userRepository.addUserToInternalUserMap(user.getUserName(), user); //internalUserMap.put(user.getUserName(), user);
+            userRepository.addUserToInternalUserMap(user.getUserName(), user);
         }
     }
 
-    public VisitedLocation trackUserLocation(User user) {
-        VisitedLocation visitedLocation = gpsUtilService.getUserLocation(user);
-        user.addToVisitedLocations(visitedLocation);
-        rewardsService.calculateRewards(user);
-        return visitedLocation;
+    public UserPreferences updateUserPreferences(String userName, UserPreferences userPreferences) {
+        User target = getUser(userName);
+        if (target != null) {
+            target.getUserPreferences().setAttractionProximity(userPreferences.getAttractionProximity());
+            target.getUserPreferences().setCurrency(userPreferences.getCurrency());
+            target.getUserPreferences().setLowerPricePoint(userPreferences.getLowerPricePoint());
+            target.getUserPreferences().setHighPricePoint(userPreferences.getHighPricePoint());
+            target.getUserPreferences().setTripDuration(userPreferences.getTripDuration());
+            target.getUserPreferences().setTicketQuantity(userPreferences.getTicketQuantity());
+            target.getUserPreferences().setNumberOfAdults(userPreferences.getNumberOfAdults());
+            target.getUserPreferences().setNumberOfChildren(userPreferences.getNumberOfChildren());
+
+            return target.getUserPreferences();
+        } else {
+            return null;
+        }
+    }
+
+    public List<UserReward> getUserRewards(User user) {
+        return user.getUserRewards();
     }
 
     public Map<String, LocationDTO> allCurrentLocations() {
@@ -86,17 +74,6 @@ public class UserService {
 
         return usersLocation;
     }
-    private void addShutDownHook() {
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() {
-                tracker.stopTracking();
-            }
-        });
-    }
-
-    /**********************************************************************************
-     * Methods Below: For Internal Testing
-     **********************************************************************************/
 
     public void initializeInternalUsers() {
         IntStream.range(0, InternalTestHelper.getInternalUserNumber()).forEach(i -> {
@@ -111,26 +88,9 @@ public class UserService {
         logger.debug("Created " + InternalTestHelper.getInternalUserNumber() + " internal test users.");
     }
 
-    private void generateUserLocationHistory(User user) {
+    public void generateUserLocationHistory(User user) {
         IntStream.range(0, 3).forEach(i -> {
-            user.addToVisitedLocations(new VisitedLocation(user.getUserId(), new Location(generateRandomLatitude(), generateRandomLongitude()), getRandomTime()));
+            user.addToVisitedLocations(new VisitedLocation(user.getUserId(), new Location(gpsUtilService.generateRandomLatitude(), gpsUtilService.generateRandomLongitude()), gpsUtilService.getRandomTime()));
         });
-    }
-
-    private double generateRandomLongitude() {
-        double leftLimit = -180;
-        double rightLimit = 180;
-        return leftLimit + new Random().nextDouble() * (rightLimit - leftLimit);
-    }
-
-    private double generateRandomLatitude() {
-        double leftLimit = -85.05112878;
-        double rightLimit = 85.05112878;
-        return leftLimit + new Random().nextDouble() * (rightLimit - leftLimit);
-    }
-
-    private Date getRandomTime() {
-        LocalDateTime localDateTime = LocalDateTime.now().minusDays(new Random().nextInt(30));
-        return Date.from(localDateTime.toInstant(ZoneOffset.UTC));
     }
 }

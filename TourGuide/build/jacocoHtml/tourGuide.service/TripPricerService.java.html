@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TripPricerService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">TourGuide</a> &gt; <a href="index.source.html" class="el_package">tourGuide.service</a> &gt; <span class="el_source">TripPricerService.java</span></div><h1>TripPricerService.java</h1><pre class="source lang-java linenums">package tourGuide.service;
+
+import org.javamoney.moneta.Money;
+import org.springframework.stereotype.Service;
+import tourGuide.user.User;
+import tripPricer.Provider;
+import tripPricer.TripPricer;
+
+import javax.money.CurrencyUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class TripPricerService {
+
+    private final TripPricer tripPricer;
+    private static final String tripPricerApiKey = &quot;test-server-api-key&quot;;
+
+<span class="fc" id="L20">    public TripPricerService(TripPricer tripPricer) {</span>
+<span class="fc" id="L21">        this.tripPricer = tripPricer;</span>
+<span class="fc" id="L22">    }</span>
+
+    public List&lt;Provider&gt; getPrice(User user, UUID userId, int adults, int children, int nightsStay, int rewardsPoints ) {
+<span class="nc" id="L25">        CurrencyUnit userCurrency = user.getUserPreferences().getCurrency();</span>
+<span class="nc" id="L26">        Money lowerPricePoint = user.getUserPreferences().getLowerPricePoint();</span>
+<span class="nc" id="L27">        Money highPricePoint = user.getUserPreferences().getHighPricePoint();</span>
+<span class="nc" id="L28">        int ticketQuantity = user.getUserPreferences().getTicketQuantity();</span>
+
+<span class="nc" id="L30">        List&lt;Provider&gt; providers =  tripPricer.getPrice(</span>
+                tripPricerApiKey,
+                userId,
+                adults,
+                children,
+                nightsStay,
+                rewardsPoints
+        );
+
+        // check quantity
+<span class="nc" id="L40">        List&lt;Provider&gt; updatedProviders = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L41" title="All 2 branches missed.">        for (Provider provider : providers) {</span>
+<span class="nc" id="L42">            double updatedPrice = provider.price * ticketQuantity;</span>
+<span class="nc" id="L43">            Provider updatedProvider = new Provider(provider.tripId, provider.name, updatedPrice);</span>
+<span class="nc" id="L44">            updatedProviders.add(updatedProvider);</span>
+<span class="nc" id="L45">        }</span>
+
+        // check price range
+<span class="nc" id="L48">        return updatedProviders.stream()</span>
+<span class="nc" id="L49">                .filter(provider -&gt; {</span>
+<span class="nc" id="L50">                    Money priceInUserCurrency = Money.of(provider.price, userCurrency);</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">                    return priceInUserCurrency.isGreaterThanOrEqualTo(lowerPricePoint) &amp;&amp;</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">                            priceInUserCurrency.isLessThanOrEqualTo(highPricePoint);</span>
+                })
+<span class="nc" id="L54">                .toList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

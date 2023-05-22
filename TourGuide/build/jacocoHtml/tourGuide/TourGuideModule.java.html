@@ -5,30 +5,27 @@ import org.springframework.context.annotation.Configuration;
 
 import gpsUtil.GpsUtil;
 import rewardCentral.RewardCentral;
+import tourGuide.repository.UserRepository;
 import tourGuide.service.GpsUtilService;
 import tourGuide.service.RewardsService;
+import tripPricer.TripPricer;
 
 @Configuration
-<span class="nc" id="L12">public class TourGuideModule {</span>
-	
+<span class="fc" id="L14">public class TourGuideModule {</span>
+
 	@Bean
 	public GpsUtil getGpsUtil() {
-<span class="nc" id="L16">		return new GpsUtil();</span>
+<span class="fc" id="L18">		return new GpsUtil();</span>
 	}
 
 	@Bean
-	public GpsUtilService getGpsUtilService() {
-<span class="nc" id="L21">		return new GpsUtilService(getGpsUtil());</span>
-	}
-	
-	@Bean
-	public RewardsService getRewardsService() {
-<span class="nc" id="L26">		return new RewardsService(getGpsUtilService(), getRewardCentral());</span>
+	public TripPricer getTripPricer() {
+<span class="fc" id="L23">		return new TripPricer();</span>
 	}
 	
 	@Bean
 	public RewardCentral getRewardCentral() {
-<span class="nc" id="L31">		return new RewardCentral();</span>
+<span class="fc" id="L28">		return new RewardCentral();</span>
 	}
 	
 }

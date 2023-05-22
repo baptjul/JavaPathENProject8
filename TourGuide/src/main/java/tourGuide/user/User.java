@@ -104,6 +104,8 @@ public class User {
 	}
 
 	public void setVisitedLocations(List<VisitedLocation> visitedLocations) {
+		System.out.println("addToVisitedLocations = " + visitedLocations);
+
 		this.visitedLocations = visitedLocations;
 	}
 }

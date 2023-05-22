@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import tourGuide.service.GpsUtilService;
 import tourGuide.service.TourGuideService;
 import tourGuide.service.UserService;
 import tourGuide.user.User;
@@ -21,6 +22,7 @@ public class Tracker extends Thread {
 	private final TourGuideService tourGuideService;
 	private boolean stop = false;
 	private final UserService userService;
+
 
 	public Tracker(TourGuideService tourGuideService, UserService userService) {
 		this.tourGuideService = tourGuideService;
@@ -49,7 +51,7 @@ public class Tracker extends Thread {
 			List<User> users = userService.getAllUsers();
 			logger.debug("Begin Tracker. Tracking " + users.size() + " users.");
 			stopWatch.start();
-			users.forEach(u -> userService.trackUserLocation(u));
+			users.forEach(tourGuideService::trackUserLocation);
 			stopWatch.stop();
 			logger.debug("Tracker Time Elapsed: " + TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()) + " seconds."); 
 			stopWatch.reset();

@@ -46,6 +46,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test:3.0.4'
 }
 
+test {
+    useJUnitPlatform()
+}
 
 jacoco {
     toolVersion = "0.8.8"
