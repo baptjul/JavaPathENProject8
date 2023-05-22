@@ -28,6 +28,8 @@ public class RewardsService {
     @Async
     public CompletableFuture<Void> calculateRewards(User user) {
         return CompletableFuture.runAsync(() -> {
+            System.out.println("users = " + user.getUserName());
+
             List<VisitedLocation> userLocations = user.getVisitedLocations();
             List<Attraction> attractions = gpsUtilService.getAttractions();
 
@@ -43,6 +45,7 @@ public class RewardsService {
 
     public CompletableFuture<Void> calculateMultipleRewards(List<User> users) {
         return CompletableFuture.runAsync(() -> {
+            System.out.println("users = " + users.size());
             List<Attraction> attractions = gpsUtilService.getAttractions();
             users.parallelStream().forEach(user -> calculateUserRewards(user, attractions));
         });
